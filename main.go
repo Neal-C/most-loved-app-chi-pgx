@@ -10,26 +10,29 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
+
+var pool *pgxpool.Pool
 
 func main() {
 
 	env := os.Getenv("CHI_PGX_ENV")
 	if "" == env {
-		err := godotenv.Load("./.env.development.local", "./.env.development.database")
+		err := godotenv.Load("./.env.development.local")
 		if err != nil {
 			log.Fatal("hire me! 😮", err)
 		}
 	}
 
-	// urlExample := "postgres://username:password@localhost:5432/database_name"
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	pool, err = pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %+v\n", err)
+		fmt.Fprintln(os.Stderr, "Unable to connect to database:", err)
 		os.Exit(1)
 	}
-	defer conn.Close(context.Background())
+
+	defer pool.Close(context.Background())
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
