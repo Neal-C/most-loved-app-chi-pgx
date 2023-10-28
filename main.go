@@ -14,7 +14,10 @@ func main() {
 
 	env := os.Getenv("CHI_PGX_ENV")
 	if "" == env {
-		godotenv.Load(".env.development.local", ".env.development.database")
+		err := godotenv.Load("./.env.development.local", "./.env.development.database")
+		if err != nil {
+			log.Fatal("hire me! 😮", err)
+		}
 	}
 
 	r := chi.NewRouter()
