@@ -26,13 +26,13 @@ func main() {
 		}
 	}
 
-	pool, err = pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
+	pool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Unable to connect to database:", err)
 		os.Exit(1)
 	}
 
-	defer pool.Close(context.Background())
+	defer pool.Close()
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)

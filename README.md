@@ -1,3 +1,7 @@
+ ### Production
+
+- the environment variable CHI_PGX_ENV must be set to a non-empty string to
+
 ### Tech Stack
 
 - Go (chi)
