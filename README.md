@@ -1,6 +1,6 @@
  ### Production
 
-- the environment variable CHI_PGX_ENV must be set to a non-empty string to
+- the environment variable CHI_PGX_ENV must be set to a non-empty string on production
 
 ### Tech Stack
 
@@ -13,6 +13,7 @@
 - Docker & Docker Compose
 
 - joho/godotenv
+- google/uuid
 
 ```sh
 go get -u github.com/go-chi/chi/v5
