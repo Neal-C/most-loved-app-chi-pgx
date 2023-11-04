@@ -34,7 +34,7 @@ func (self Quote) New(book, quote string) Quote {
 	}
 }
 
-type quoteCreationArgs struct {
+type QuoteArgs struct {
 	Book  string `json:"book,omitempty"`
 	Quote string `json:"quote,omitempty"`
 }
@@ -42,7 +42,7 @@ type quoteCreationArgs struct {
 func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 	return func(responseWriter http.ResponseWriter, request *http.Request) {
 		defer request.Body.Close()
-		arguments := quoteCreationArgs{}
+		arguments := QuoteArgs{}
 		if err := json.NewDecoder(request.Body).Decode(&arguments); err != nil {
 			WriteError(responseWriter, err, http.StatusBadRequest)
 			return
@@ -67,20 +67,26 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 }
 
 func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(responseWriter http.ResponseWriter, request *http.Request) {
 		rows, err := postgreSQLPool.Query(context.TODO(), "SELECT * FROM quote")
 		if err != nil {
-			WriteError(w, err, http.StatusInternalServerError)
+			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
 		quotes, err := pgx.CollectRows[Quote](rows, pgx.RowToStructByPos[Quote])
 		if err != nil {
-			WriteError(w, err, http.StatusInternalServerError)
+			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
 
-		WriteJSON(w, http.StatusOK, quotes)
+		WriteJSON(responseWriter, http.StatusOK, quotes)
 		return
+
+	}
+}
+
+func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
+	return func(responseWriter http.ResponseWriter, request *http.Request) {
 
 	}
 }
