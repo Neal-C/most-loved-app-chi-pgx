@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -47,10 +46,8 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 			WriteError(responseWriter, err, http.StatusBadRequest)
 			return
 		}
-		fmt.Printf("arguments %#+v \n", arguments)
 		var quote Quote
 		quote = quote.New(arguments.Book, arguments.Quote)
-		fmt.Printf("quote %#+v \n", quote)
 
 		var sqlQuery string = "INSERT INTO quote (id, book, quote, inserted_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
 
@@ -60,7 +57,7 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf("quote again %#+v \n", quote)
+
 		WriteJSON(responseWriter, http.StatusCreated, quote)
 		return
 	}
