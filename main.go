@@ -6,11 +6,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"sort"
+	"syscall"
+	"time"
 
 	"github.com/Neal-C/most-loved-app-go-pgx/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 
 	/*
 		Note the ‘_’ : this is a “blank import”, which means that we’re importing the package for it’s side effects (that is, registering the driver).
@@ -38,11 +43,30 @@ func main() {
 	}
 	defer pool.Close()
 
-	if err := pool.Ping(context.TODO()); err != nil {
-		log.Fatal("Pinging database failed", err)
-	}
+	// if err := pool.Ping(context.Background()); err != nil {
+	// 	log.Fatal("Pinging database failed", err)
+	// }
 
 	chiRouter := chi.NewRouter()
+	chiRouter.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{`https:\/\/*`, `http:\/\/*`},
+		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
+	// Enable httprate request limiter of 100 requests per minute.
+	//
+	// In the code example below, rate-limiting is bound to the request IP address
+	// via the LimitByIP middleware handler.
+	//
+	// To have a single rate-limiter for all requests, use httprate.LimitAll(..).
+	//
+	// Please see _example/main.go for other more, or read the library code.
+	chiRouter.Use(httprate.LimitByIP(100, 1*time.Minute))
+	chiRouter.Use(middleware.RedirectSlashes)
 	chiRouter.Use(middleware.Logger)
 	chiRouter.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -50,13 +74,48 @@ func main() {
 	})
 	chiRouter.Post("/quote", handlers.CreateQuote(pool))
 	chiRouter.Get("/quote", handlers.ReadQuote(pool))
-	chiRouter.Patch("/quote", func(w http.ResponseWriter, r *http.Request) {
+	chiRouter.Patch("/quote", handlers.UpdateQuote(pool))
+	chiRouter.Delete("/quote", handlers.DeleteQuote(pool))
+	// log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), chiRouter))
 
-	})
-	chiRouter.Delete("/quote", func(w http.ResponseWriter, r *http.Request) {
+	server := &http.Server{Addr: "0.0.0.0:" + os.Getenv("PORT"), Handler: chiRouter}
 
-	})
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), chiRouter))
+	// Server run context
+	serverCtx, serverStopCtx := context.WithCancel(context.Background())
+
+	// Listen for syscall signals for process to interrupt/quit
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-sig
+
+		// Shutdown signal with grace period of 30 seconds
+		// lint:ignore
+		shutdownCtx, _ := context.WithTimeout(serverCtx, 30*time.Second)
+
+		go func() {
+			<-shutdownCtx.Done()
+			if shutdownCtx.Err() == context.DeadlineExceeded {
+				log.Fatal("graceful shutdown timed out... forcing exit.")
+			}
+		}()
+
+		// Trigger graceful shutdown
+		err := server.Shutdown(shutdownCtx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		serverStopCtx()
+	}()
+
+	// Run the server
+	err = server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
+
+	// Wait for server context to be stopped
+	<-serverCtx.Done()
 }
 
 // pgconfig is a struct that holds the configuration for connecting to a postgres database.
