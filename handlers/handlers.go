@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -51,7 +52,7 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 
 		var sqlQuery string = "INSERT INTO quote (id, book, quote, inserted_at, updated_at) VALUES ($1, $2, $3, $4, $5)"
 
-		_, err := postgreSQLPool.Exec(context.TODO(), sqlQuery, quote.Id, quote.Book, quote.Quote, quote.InsertedAt, quote.UpdatedAt)
+		_, err := postgreSQLPool.Exec(context.Background(), sqlQuery, quote.Id, quote.Book, quote.Quote, quote.InsertedAt, quote.UpdatedAt)
 
 		if err != nil {
 			WriteError(responseWriter, err, http.StatusInternalServerError)
@@ -65,12 +66,12 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 
 func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 	return func(responseWriter http.ResponseWriter, request *http.Request) {
-		rows, err := postgreSQLPool.Query(context.TODO(), "SELECT * FROM quote")
+		rows, err := postgreSQLPool.Query(context.Background(), "SELECT * FROM quote")
 		if err != nil {
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
-		quotes, err := pgx.CollectRows[Quote](rows, pgx.RowToStructByPos[Quote])
+		quotes, err := pgx.CollectRows[Quote](rows, pgx.RowToStructByName[Quote])
 		if err != nil {
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
@@ -85,6 +86,69 @@ func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 	return func(responseWriter http.ResponseWriter, request *http.Request) {
 
+		defer request.Body.Close()
+
+		id := request.URL.Query().Get("id")
+
+		if id == "" {
+			WriteError(responseWriter, fmt.Errorf("no id provided"), http.StatusBadRequest)
+			return
+		}
+
+		quoteArgs, err := ReadJSON[QuoteArgs](request.Body)
+
+		if err != nil {
+			WriteError(responseWriter, err, http.StatusBadRequest)
+			return
+		}
+
+		row, err := postgreSQLPool.Query(context.Background(), "UPDATE quote SET (quote, updated_at) = ($2, $3) WHERE id = $1 RETURNING *", id, quoteArgs.Quote, time.Now())
+
+
+		if err != nil {
+			WriteError(responseWriter, err, http.StatusInternalServerError)
+			return
+		}
+
+		quote, err := pgx.CollectRows(row, pgx.RowToStructByName[Quote])
+
+		if err != nil {
+			WriteError(responseWriter, err, http.StatusInternalServerError)
+			return
+		}
+
+		WriteJSON(responseWriter, http.StatusAccepted, quote)
+		return
+	}
+}
+
+func DeleteQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
+	return func(responseWriter http.ResponseWriter, request *http.Request) {
+		defer request.Body.Close()
+
+		id := request.URL.Query().Get("id")
+
+		if id == "" {
+			WriteError(responseWriter, fmt.Errorf("no id provided"), http.StatusBadRequest)
+			return
+		}
+
+		row, err := postgreSQLPool.Query(context.Background(), "DELETE FROM quote WHERE id = $1 RETURNING *", id)
+
+		if err != nil {
+			WriteError(responseWriter, err, http.StatusInternalServerError)
+			return
+		}
+
+		quote, err := pgx.CollectRows(row, pgx.RowToStructByName[Quote])
+
+		if err != nil {
+			WriteError(responseWriter, err, http.StatusInternalServerError)
+			return
+		}
+
+		WriteJSON(responseWriter, http.StatusAccepted, quote)
+		return
 	}
 }
 
