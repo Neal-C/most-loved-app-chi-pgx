@@ -4,11 +4,9 @@ on:
  workflow_dispatch:
 
 jobs:
- build:
+ testing_REST_endpoints:
   runs-on: ubuntu-latest
-  strategy:
-   matrix:
-    go-version: ["1.21"]
+
   services:
    chi_pgx_db:
     image: postgres
@@ -40,10 +38,10 @@ jobs:
      run: |
       psql --host localhost --username ifyourereadingthisHIREME --port 5432 --dbname chi_pgx_db --file 01_schema.ddl.sql --echo-all --echo-errors --echo-queries
 
-   - name: Setup Go ${{ matrix.go-version }}
+   - name: Setup Go 1.21
      uses: actions/setup-go@v4
      with:
-      go-version: ${{ matrix.go-version }}
+      go-version: 1.21
       # You can test your matrix by printing the current Go version
    - name: Display Go version
      run: go version
