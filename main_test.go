@@ -1,16 +1,17 @@
 package main
 
-
 import (
-    "net/http"
-    "net/http/httptest"
-    _ "os"
-    "testing"
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"sort"
+	"testing"
 
-    _ "github.com/stretchr/testify/require"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/require"
 )
-
-//TODO : make stuff into functions so that it's easier to test
 
 // executeRequest, creates a new ResponseRecorder
 // then executes the request by calling ServeHTTP in the router
@@ -83,4 +84,36 @@ func pgConfigFromEnv() (pgconfig, error) {
 		return cfg, fmt.Errorf("missing required environment variables: %v", missing)
 	}
 	return cfg, nil
+}
+
+func setupForTest(t *testing.T) *Server {
+	var server *Server = createNewServer(os.Getenv("PORT"))
+	postgreSQLConfig, err := pgConfigFromEnv()
+	if err != nil {
+		t.Fatalf("Couldn't parse environment variables")
+	}
+	var databaseURL string = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", postgreSQLConfig.user, postgreSQLConfig.password, postgreSQLConfig.host, postgreSQLConfig.port, postgreSQLConfig.database, postgreSQLConfig.sslMode)
+
+	pool, err := pgxpool.New(context.Background(), databaseURL)
+	if err != nil {
+		t.Fatalf("Unable to connect to the database")
+	}
+	server.MountHandlers(pool);
+
+	return server
+}
+
+func TestCreateQuote(t *testing.T){
+	server := setupForTest(t)
+
+	// Create a New Request
+    req, _ := http.NewRequest("GET", "/", nil)
+
+	// Execute Request
+	response := executeRequest(req, server)
+
+	// Check response Code
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	require.Equal(t, "healthchecked", response.Body.String())
 }
