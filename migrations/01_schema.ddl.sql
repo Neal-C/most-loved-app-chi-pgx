@@ -1,4 +1,6 @@
 -- Add migration script here
+SET TIMEZONE TO 'Europe/Prague';
+
 CREATE TABLE IF NOT EXISTS quote (
     id UUID PRIMARY KEY,
     book VARCHAR(63) NOT NULL,
