@@ -1,0 +1,64 @@
+name: chi_pgx
+
+on:
+ workflow_dispatch:
+
+jobs:
+ build:
+  runs-on: ubuntu-latest
+  strategy:
+   matrix:
+    go-version: ["1.19", "1.20", "1.21.x"]
+  services:
+   chi_pgx_db:
+    image: postgres
+    env:
+     POSTGRES_PASSWORD: password
+     POSTGRES_DB: chi_pgx_db
+     POSTGRES_USER: ifyourereadingthisHIREME
+    # Set health checks to wait until postgres has started
+    options: >-
+     --health-cmd pg_isready
+     --health-interval 10s
+     --health-timeout 5s
+     --health-retries 5
+    ports:
+     - 5432:5432/tcp
+
+  steps:
+   - name: "move code over with checkout"
+     uses: actions/checkout@v4
+     with:
+      fetch-depth: 1
+   - name: "download psql"
+     run: |
+      sudo apt-get update
+      sudo apt-get install --yes postgresql-client
+   - name: "run SQL scripts"
+     working-directory: "migrations"
+     env:
+      PGPASSWORD: password
+     run: |
+      psql --host localhost --username ifyourereadingthisHIREME --port 5432 --dbname chi_pgx_db --file 01_schema.ddl.sql --echo-all --echo-errors --echo-queries
+
+   - name: Setup Go ${{ matrix.go-version }}
+     uses: actions/setup-go@v4
+     with:
+      go-version: ${{ matrix.go-version }}
+      # You can test your matrix by printing the current Go version
+   - name: Display Go version
+     run: go version
+   - name: Install dependencies
+     run: go get .
+   - name: Build
+     run: go build -v ./...
+   - name: Test with the Go CLI
+     run: go test ./... -v -cover
+env:
+ POSTGRES_HOST: chi_pgx_db
+ POSTGRES_PORT: 5432
+ POSTGRES_DB: chi_pgx_db
+ POSTGRES_USER: ifyourereadingthisHIREME
+ POSTGRES_PASSWORD: password
+ POSTGRES_SSLMODE: disable
+ PORT: 8080
