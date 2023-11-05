@@ -32,7 +32,6 @@ jobs:
       fetch-depth: 1
    - name: "download psql"
      run: |
-      sudo apt-get update
       sudo apt-get install --yes postgresql-client
    - name: "run SQL scripts"
      working-directory: "migrations"
