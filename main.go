@@ -89,9 +89,9 @@ func main() {
 	}
 	defer pool.Close()
 
-	// if err := pool.Ping(context.Background()); err != nil {
-	// 	log.Fatal("Pinging database failed", err)
-	// }
+	if err := pool.Ping(context.Background()); err != nil {
+		log.Fatal("Pinging database failed", err)
+	}
 
 	server := createNewServer(os.Getenv("PORT"))
 	server.MountHandlers(pool)
