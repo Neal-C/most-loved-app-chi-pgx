@@ -1,6 +1,9 @@
- ### Production
+ # A Go Playground
+ ## Calm down, this is not meant for production. it is not "prod ready"
+ 
+ ### live
 
-- the environment variable CHI_PGX_ENV must be set to a non-empty string on production
+- the environment variable CHI_PGX_ENV must be set to a non-empty string when live
 
 ### Tech Stack
 
