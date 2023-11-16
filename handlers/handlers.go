@@ -44,6 +44,8 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		defer request.Body.Close()
 		arguments := QuoteArgs{}
 		if err := json.NewDecoder(request.Body).Decode(&arguments); err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusBadRequest)
 			return
 		}
@@ -55,6 +57,8 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		_, err := postgreSQLPool.Exec(context.Background(), sqlQuery, quote.Id, quote.Book, quote.Quote, quote.InsertedAt, quote.UpdatedAt)
 
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
@@ -68,11 +72,15 @@ func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 	return func(responseWriter http.ResponseWriter, request *http.Request) {
 		rows, err := postgreSQLPool.Query(context.Background(), "SELECT * FROM quote")
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
 		quotes, err := pgx.CollectRows[Quote](rows, pgx.RowToStructByName[Quote])
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
@@ -91,6 +99,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		id := request.URL.Query().Get("id")
 
 		if id == "" {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, fmt.Errorf("no id provided"), http.StatusBadRequest)
 			return
 		}
@@ -98,6 +108,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		quoteArgs, err := ReadJSON[QuoteArgs](request.Body)
 
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusBadRequest)
 			return
 		}
@@ -106,6 +118,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 
 
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
@@ -113,6 +127,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		quote, err := pgx.CollectRows(row, pgx.RowToStructByName[Quote])
 
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
@@ -136,6 +152,8 @@ func DeleteQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		row, err := postgreSQLPool.Query(context.Background(), "DELETE FROM quote WHERE id = $1 RETURNING *", id)
 
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
@@ -143,6 +161,8 @@ func DeleteQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		quote, err := pgx.CollectRows(row, pgx.RowToStructByName[Quote])
 
 		if err != nil {
+			// Don't return straight up errors in production
+			// it gives too much information about the system to a potential attacker
 			WriteError(responseWriter, err, http.StatusInternalServerError)
 			return
 		}
