@@ -46,7 +46,8 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err := json.NewDecoder(request.Body).Decode(&arguments); err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusBadRequest)
+			log.Println("Couldn't deserialize json", "error", err)
+			WriteError(responseWriter, fmt.Errorf("bad json, probably a wrong schema"), http.StatusBadRequest)
 			return
 		}
 		var quote Quote
@@ -59,11 +60,12 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("Failed to insert quote into the DB", "err", err, "quote was ->", quote)
+			WriteError(responseWriter, fmt.Errorf("Could not create quote"), http.StatusInternalServerError)
 			return
 		}
-
 		WriteJSON(responseWriter, http.StatusCreated, quote)
+		log.Println("Successfully created", "quote", quote)
 		return
 	}
 }
@@ -74,18 +76,21 @@ func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("Failed to retrieve all quotes from DB", "error", err)
+			WriteError(responseWriter, fmt.Errorf("Could not retrieve quotes"), http.StatusInternalServerError)
 			return
 		}
 		quotes, err := pgx.CollectRows[Quote](rows, pgx.RowToStructByName[Quote])
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("Failed to map RowToStructByName", "error", err)
+			WriteError(responseWriter, fmt.Errorf("the developer messed up"), http.StatusInternalServerError)
 			return
 		}
 
 		WriteJSON(responseWriter, http.StatusOK, quotes)
+		log.Println("Successfully sent all quotes to client")
 		return
 
 	}
@@ -97,10 +102,12 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		defer request.Body.Close()
 
 		id := request.URL.Query().Get("id")
+		log.Println("request.URL.Queryparameters", "id ->", id)
 
 		if id == "" {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
+			log.Println("Request failed because no id was provided")
 			WriteError(responseWriter, fmt.Errorf("no id provided"), http.StatusBadRequest)
 			return
 		}
@@ -110,7 +117,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusBadRequest)
+			log.Println("Coul", "error ->>", err)
+			WriteError(responseWriter, fmt.Errorf("bad json, probably wrong schema"), http.StatusBadRequest)
 			return
 		}
 
@@ -120,7 +128,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("PATCH request failed", "error ->>", err)
+			WriteError(responseWriter, fmt.Errorf("Probably no quote with this id"), http.StatusInternalServerError)
 			return
 		}
 
@@ -129,11 +138,13 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("Failed to map StructByName", "error ->>", err)
+			WriteError(responseWriter, fmt.Errorf("Developer probably messed up"), http.StatusInternalServerError)
 			return
 		}
 
 		WriteJSON(responseWriter, http.StatusAccepted, quote)
+		log.Println("Successfully updated quote")
 		return
 	}
 }
@@ -154,7 +165,8 @@ func DeleteQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("Couldn't delete quote", "error ->>", err)
+			WriteError(responseWriter, fmt.Errorf("Couldn't delete the quote"), http.StatusInternalServerError)
 			return
 		}
 
@@ -163,11 +175,13 @@ func DeleteQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
-			WriteError(responseWriter, err, http.StatusInternalServerError)
+			log.Println("failed to map StructByName", "error ->>", err)
+			WriteError(responseWriter, fmt.Errorf("Developer probably messed up"), http.StatusInternalServerError)
 			return
 		}
 
 		WriteJSON(responseWriter, http.StatusAccepted, quote)
+		log.Println("Successfully deleted", "quote ->>", quote)
 		return
 	}
 }
