@@ -75,7 +75,7 @@ func main() {
 	env := os.Getenv("CHI_PGX_ENV")
 	if "" == env {
 		log.Println("missing .env.development.local file in the current directory")
-		log.Fatal("hire me! 😮", err)
+		log.Fatal("hire me! 😮")
 	}
 
 	pool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
