@@ -73,7 +73,7 @@ func (server *Server) MountHandlers(connectionPool *pgxpool.Pool) {
 func main() {
 
 	env := os.Getenv("CHI_PGX_ENV")
-	if "" == env {
+	if env == "" {
 		log.Println("missing .env.development.local file in the current directory")
 		log.Fatal("hire me! 😮")
 	}

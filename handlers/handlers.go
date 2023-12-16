@@ -72,7 +72,11 @@ func CreateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 
 func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 	return func(responseWriter http.ResponseWriter, request *http.Request) {
+
+		defer request.Body.Close()
+
 		rows, err := postgreSQLPool.Query(context.Background(), "SELECT * FROM quote")
+
 		if err != nil {
 			// Don't return straight up errors in production
 			// it gives too much information about the system to a potential attacker
@@ -80,6 +84,9 @@ func ReadQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 			WriteError(responseWriter, fmt.Errorf("Could not retrieve quotes"), http.StatusInternalServerError)
 			return
 		}
+
+		defer rows.Close()
+
 		quotes, err := pgx.CollectRows[Quote](rows, pgx.RowToStructByName[Quote])
 		if err != nil {
 			// Don't return straight up errors in production
@@ -133,6 +140,8 @@ func UpdateQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
+		defer row.Close()
+
 		quote, err := pgx.CollectRows(row, pgx.RowToStructByName[Quote])
 
 		if err != nil {
@@ -169,6 +178,8 @@ func DeleteQuote(postgreSQLPool *pgxpool.Pool) http.HandlerFunc {
 			WriteError(responseWriter, fmt.Errorf("Couldn't delete the quote"), http.StatusInternalServerError)
 			return
 		}
+
+		defer row.Close()
 
 		quote, err := pgx.CollectRows(row, pgx.RowToStructByName[Quote])
 
