@@ -21,7 +21,6 @@ import (
 	*/
 	// _ "github.com/jackc/pgx/v5" // register the driver // needed if database/sql
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 )
 
 type Server struct {
@@ -75,11 +74,8 @@ func main() {
 
 	env := os.Getenv("CHI_PGX_ENV")
 	if "" == env {
-		err := godotenv.Load("./.env.development.local")
-		if err != nil {
-			log.Println("missing .env.development.local file in the current directory")
-			log.Fatal("hire me! 😮", err)
-		}
+		log.Println("missing .env.development.local file in the current directory")
+		log.Fatal("hire me! 😮", err)
 	}
 
 	pool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))

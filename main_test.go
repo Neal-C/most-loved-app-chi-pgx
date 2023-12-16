@@ -18,20 +18,19 @@ import (
 // after which the handler writes the response to the response recorder
 // which we can then inspect.
 func executeRequest(req *http.Request, s *Server) *httptest.ResponseRecorder {
-    rr := httptest.NewRecorder()
-    s.Router.ServeHTTP(rr, req)
+	rr := httptest.NewRecorder()
+	s.Router.ServeHTTP(rr, req)
 
-    return rr
+	return rr
 }
 
 // checkResponseCode is a simple utility to check the response code
 // of the response
 func checkResponseCode(t *testing.T, expected, actual int) {
-    if expected != actual {
-        t.Errorf("Expected response code %d. Got %d\n", expected, actual)
-    }
+	if expected != actual {
+		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+	}
 }
-
 
 // pgconfig is a struct that holds the configuration for connecting to a postgres database.
 // each field corresponds to a component of the connection string.
@@ -98,16 +97,16 @@ func setupForTest(t *testing.T) *Server {
 	if err != nil {
 		t.Fatalf("Unable to connect to the database")
 	}
-	server.MountHandlers(pool);
+	server.MountHandlers(pool)
 
 	return server
 }
 
-func TestCreateQuote(t *testing.T){
+func TestCreateQuote(t *testing.T) {
 	server := setupForTest(t)
 
 	// Create a New Request
-    req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", nil)
 
 	// Execute Request
 	response := executeRequest(req, server)
